@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "SmartBrowser MVP",
+  "version": "1.0.0",
+  "description": "Browser automation assistant with Claude AI integration",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "<all_urls>"
+  ],
+  
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content-script.js"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "SmartBrowser",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  
+  "options_page": "options/options.html",
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://localhost:3000 https://api.anthropic.com"
+  }
+}

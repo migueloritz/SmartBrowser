@@ -1,0 +1,17 @@
+{
+  "id": "msg_test123",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "This is a test summary of the article content. The key points include important information about the topic and relevant details for the user."
+    }
+  ],
+  "model": "claude-3-sonnet-20240229",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 150,
+    "output_tokens": 75
+  }
+}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBrowser MVP</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🧠 SmartBrowser</h1>
+            <div class="status" id="status">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="summarize">Summarize</button>
+            <button class="tab-button" data-tab="goals">Goals</button>
+            <button class="tab-button" data-tab="history">History</button>
+        </div>
+
+        <!-- Summarize Tab -->
+        <div class="tab-content active" id="summarize-tab">
+            <div class="section">
+                <h3>📄 Page Summary</h3>
+                <div class="current-page" id="currentPage">
+                    <div class="page-info">
+                        <div class="page-title" id="pageTitle">Loading...</div>
+                        <div class="page-url" id="pageUrl"></div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-primary" id="summarizeBtn">
+                        <span class="btn-icon">✨</span>
+                        Summarize This Page
+                    </button>
+                </div>
+
+                <div class="result-container" id="summaryResult" style="display: none;">
+                    <div class="result-header">
+                        <h4>Summary</h4>
+                        <div class="result-meta" id="summaryMeta"></div>
+                    </div>
+                    <div class="result-content" id="summaryContent"></div>
+                    <div class="key-points" id="keyPoints" style="display: none;">
+                        <h5>Key Points</h5>
+                        <ul id="keyPointsList"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Tab -->
+        <div class="tab-content" id="goals-tab">
+            <div class="section">
+                <h3>🎯 Execute Goal</h3>
+                
+                <div class="input-group">
+                    <label for="goalInput">What would you like me to do?</label>
+                    <textarea 
+                        id="goalInput" 
+                        placeholder="e.g., Find hotels in Paris for next weekend, Search for the latest AI news, Help me compare laptop prices..."
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="prioritySelect">Priority</label>
+                    <select id="prioritySelect">
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="executeGoalBtn">
+                        <span class="btn-icon">🚀</span>
+                        Execute Goal
+                    </button>
+                </div>
+
+                <div class="result-container" id="goalResult" style="display: none;">
+                    <div class="result-header">
+                        <h4>Execution Result</h4>
+                        <div class="result-meta" id="goalMeta"></div>
+                    </div>
+                    <div class="result-content" id="goalContent"></div>
+                    <div class="task-list" id="taskList" style="display: none;">
+                        <h5>Tasks Executed</h5>
+                        <div id="taskItems"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content" id="history-tab">
+            <div class="section">
+                <h3>📚 Recent Activity</h3>
+                <div class="history-list" id="historyList">
+                    <div class="loading">Loading history...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Processing...</div>
+        </div>
+
+        <!-- Error Notifications -->
+        <div class="notification error" id="errorNotification" style="display: none;">
+            <span class="notification-icon">⚠️</span>
+            <span class="notification-text" id="errorText"></span>
+            <button class="notification-close" id="closeError">×</button>
+        </div>
+
+        <!-- Success Notifications -->
+        <div class="notification success" id="successNotification" style="display: none;">
+            <span class="notification-icon">✅</span>
+            <span class="notification-text" id="successText"></span>
+            <button class="notification-close" id="closeSuccess">×</button>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "id": "msg_test456",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"intent\":{\"type\":\"booking\",\"confidence\":0.95,\"parameters\":{\"location\":\"Paris\",\"type\":\"hotel\",\"checkIn\":\"2024-02-15\",\"checkOut\":\"2024-02-17\"}},\"entities\":[{\"type\":\"location\",\"value\":\"Paris\",\"confidence\":0.98,\"start\":15,\"end\":20}],\"steps\":[\"Navigate to hotel booking website\",\"Search for hotels in Paris\",\"Filter results by date range\",\"Extract hotel options and prices\"]}"
+    }
+  ],
+  "model": "claude-3-sonnet-20240229",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 200,
+    "output_tokens": 120
+  }
+}

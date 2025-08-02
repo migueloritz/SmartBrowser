@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../",
+    "outDir": "../dist-tests",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "../src/**/*",
+    "./**/*",
+    "./global.d.ts"
+  ],
+  "exclude": [
+    "../node_modules",
+    "../dist"
+  ]
+}
