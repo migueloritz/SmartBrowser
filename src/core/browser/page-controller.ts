@@ -25,6 +25,23 @@ class PageController {
     options: NavigationOptions = {}
   ): Promise<string> {
     try {
+      // Input validation
+      if (!userId || typeof userId !== 'string') {
+        throw new BrowserError('User ID is required and must be a string');
+      }
+      
+      if (!url || typeof url !== 'string') {
+        throw new BrowserError('URL is required and must be a string');
+      }
+      
+      if (userId.trim().length === 0) {
+        throw new BrowserError('User ID cannot be empty');
+      }
+      
+      if (url.trim().length === 0) {
+        throw new BrowserError('URL cannot be empty');
+      }
+
       // Validate URL
       const validatedUrl = validator.validateUrl(url);
       
@@ -32,14 +49,26 @@ class PageController {
       const sessionId = uuidv4();
       const contextId = await playwrightManager.createContext(userId, sessionId);
       
+      if (!contextId) {
+        throw new BrowserError('Failed to create browser context');
+      }
+      
       // Create page
       const pageId = await playwrightManager.createPage(contextId);
+      
+      if (!pageId) {
+        throw new BrowserError('Failed to create page');
+      }
       
       // Navigate to URL
       await playwrightManager.navigateToUrl(pageId, validatedUrl, options);
       
       // Get page info
       const pageContent = await playwrightManager.getPageContent(pageId);
+      
+      if (!pageContent) {
+        throw new BrowserError('Failed to get page content');
+      }
       
       // Create session
       const session: PageSession = {

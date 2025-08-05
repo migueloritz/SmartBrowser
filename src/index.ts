@@ -36,6 +36,10 @@ interface GoalRequest {
   };
 }
 
+/**
+ * Main SmartBrowser application server
+ * Provides web API endpoints for browser automation and AI-powered content analysis
+ */
 class SmartBrowserApp {
   public app: express.Application;
   private server?: any;
@@ -47,6 +51,52 @@ class SmartBrowserApp {
     this.setupErrorHandling();
   }
 
+  /**
+   * Rate limiting middleware to prevent abuse
+   * @returns Express middleware function
+   */
+  private rateLimitMiddleware(): express.RequestHandler {
+    const requestCounts = new Map<string, { count: number; resetTime: number }>();
+    const maxRequests = 100; // requests per window
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+
+    return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
+      const clientId = req.ip || 'unknown';
+      const now = Date.now();
+      
+      const clientData = requestCounts.get(clientId) || { count: 0, resetTime: now + windowMs };
+      
+      // Reset count if window has expired
+      if (now > clientData.resetTime) {
+        clientData.count = 0;
+        clientData.resetTime = now + windowMs;
+      }
+      
+      clientData.count++;
+      requestCounts.set(clientId, clientData);
+      
+      if (clientData.count > maxRequests) {
+        logger.warn('Rate limit exceeded', { clientId, count: clientData.count });
+        res.status(429).json({
+          success: false,
+          error: 'Too many requests. Please try again later.',
+          timestamp: new Date()
+        });
+        return;
+      }
+      
+      // Set rate limit headers
+      res.setHeader('X-RateLimit-Limit', maxRequests);
+      res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - clientData.count));
+      res.setHeader('X-RateLimit-Reset', new Date(clientData.resetTime).toISOString());
+      
+      next();
+    };
+  }
+
+  /**
+   * Configure Express middleware for security, CORS, parsing, and logging
+   */
   private setupMiddleware(): void {
     // Security middleware
     this.app.use(helmet({
@@ -73,6 +123,9 @@ class SmartBrowserApp {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+    // Simple rate limiting middleware
+    this.app.use(this.rateLimitMiddleware());
+
     // Request logging
     this.app.use((req, res, next) => {
       logger.http('Incoming request', {
@@ -85,6 +138,9 @@ class SmartBrowserApp {
     });
   }
 
+  /**
+   * Configure API routes and endpoint handlers
+   */
   private setupRoutes(): void {
     // Health check
     this.app.get('/health', async (req, res) => {
@@ -120,17 +176,29 @@ class SmartBrowserApp {
           throw new ValidationError('URL is required');
         }
 
+        if (typeof url !== 'string') {
+          throw new ValidationError('URL must be a string');
+        }
+
+        // Validate and sanitize options
+        if (options && typeof options !== 'object') {
+          throw new ValidationError('Options must be an object');
+        }
+
         const validatedUrl = validator.validateUrl(url);
         const userId = req.headers['x-user-id'] as string || 'anonymous';
 
+        // Sanitize userId
+        const sanitizedUserId = validator.sanitizeString(userId);
+
         logger.info('Summarization request received', { 
           url: validatedUrl, 
-          userId,
+          userId: sanitizedUserId,
           options 
         });
 
         // Create page session and navigate to URL
-        const sessionId = await pageController.createPageSession(userId, validatedUrl);
+        const sessionId = await pageController.createPageSession(sanitizedUserId, validatedUrl);
         
         try {
           // Get page content
@@ -217,12 +285,36 @@ class SmartBrowserApp {
           throw new ValidationError('Goal is required');
         }
 
+        if (typeof goal !== 'string') {
+          throw new ValidationError('Goal must be a string');
+        }
+
+        if (goal.trim().length === 0) {
+          throw new ValidationError('Goal cannot be empty');
+        }
+
+        if (goal.length > 1000) {
+          throw new ValidationError('Goal is too long (max 1000 characters)');
+        }
+
+        // Validate priority
+        const validPriorities = ['low', 'medium', 'high', 'critical'];
+        if (!validPriorities.includes(priority)) {
+          throw new ValidationError('Invalid priority value');
+        }
+
+        // Validate context
+        if (context && typeof context !== 'object') {
+          throw new ValidationError('Context must be an object');
+        }
+
         const userId = req.headers['x-user-id'] as string || 'anonymous';
+        const sanitizedUserId = validator.sanitizeString(userId);
         const validatedGoal = validator.validateUserGoal({ text: goal, priority });
 
         logger.info('Goal execution request received', { 
-          goal,
-          userId,
+          goal: validatedGoal.text,
+          userId: sanitizedUserId,
           priority,
           context 
         });
@@ -230,7 +322,7 @@ class SmartBrowserApp {
         // Create user goal object
         const userGoal: UserGoal = {
           id: uuidv4(),
-          userId,
+          userId: sanitizedUserId,
           text: validatedGoal.text,
           intent: {
             type: 'search', // Will be determined by Claude
@@ -246,7 +338,7 @@ class SmartBrowserApp {
 
         // Create execution context
         const executionContext = {
-          userId,
+          userId: sanitizedUserId,
           sessionId: uuidv4(),
           goal: userGoal,
           currentUrl: context.currentUrl
@@ -311,16 +403,21 @@ class SmartBrowserApp {
         const { url } = req.query;
         
         if (!url || typeof url !== 'string') {
-          throw new ValidationError('URL parameter is required');
+          throw new ValidationError('URL parameter is required and must be a string');
+        }
+
+        if (url.trim().length === 0) {
+          throw new ValidationError('URL cannot be empty');
         }
 
         const validatedUrl = validator.validateUrl(url);
         const userId = req.headers['x-user-id'] as string || 'anonymous';
+        const sanitizedUserId = validator.sanitizeString(userId);
 
-        logger.info('Page info request received', { url: validatedUrl, userId });
+        logger.info('Page info request received', { url: validatedUrl, userId: sanitizedUserId });
 
         // Create page session
-        const sessionId = await pageController.createPageSession(userId, validatedUrl);
+        const sessionId = await pageController.createPageSession(sanitizedUserId, validatedUrl);
         
         try {
           // Get page content

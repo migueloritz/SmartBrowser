@@ -54,23 +54,52 @@ class ClaudeClient {
     relevanceScore: number;
   }> {
     try {
+      // Input validation
+      if (!content) {
+        throw new ClaudeAPIError('Content is required');
+      }
+      
+      if (!content.text || typeof content.text !== 'string') {
+        throw new ClaudeAPIError('Content text is required and must be a string');
+      }
+      
+      if (content.text.trim().length === 0) {
+        throw new ClaudeAPIError('Content text cannot be empty');
+      }
+      
+      if (content.text.length > 100000) {
+        throw new ClaudeAPIError('Content text is too long (max 100,000 characters)');
+      }
+
       const prompt = this.buildSummarizationPrompt(content, options);
       const response = await this.makeRequest(prompt);
       
+      if (!response || !response.content || !Array.isArray(response.content)) {
+        throw new ClaudeAPIError('Invalid response format from Claude API');
+      }
+      
       const firstContent = response.content[0];
       const responseText = firstContent && 'text' in firstContent ? firstContent.text : '';
+      
+      if (!responseText) {
+        throw new ClaudeAPIError('No content returned from Claude API');
+      }
+      
       const result = this.parseSummarizationResponse(responseText);
       
       logger.info('Content summarized successfully', {
         url: content.url,
-        summaryLength: result.summary.length,
-        keyPointsCount: result.keyPoints.length
+        summaryLength: result.summary?.length || 0,
+        keyPointsCount: result.keyPoints?.length || 0
       });
       
       return result;
     } catch (error) {
       logger.error('Failed to summarize content', error);
-      throw new ClaudeAPIError(`Summarization failed: ${error.message}`);
+      if (error instanceof ClaudeAPIError) {
+        throw error;
+      }
+      throw new ClaudeAPIError(`Summarization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -103,23 +132,48 @@ class ClaudeClient {
     recommendations: string[];
   }> {
     try {
+      // Input validation
+      if (!goal) {
+        throw new ClaudeAPIError('Goal is required');
+      }
+      
+      if (!goal.text || typeof goal.text !== 'string') {
+        throw new ClaudeAPIError('Goal text is required and must be a string');
+      }
+      
+      if (goal.text.trim().length === 0) {
+        throw new ClaudeAPIError('Goal text cannot be empty');
+      }
+
       const prompt = this.buildGoalAnalysisPrompt(goal, context, options);
       const response = await this.makeRequest(prompt);
       
+      if (!response || !response.content || !Array.isArray(response.content)) {
+        throw new ClaudeAPIError('Invalid response format from Claude API');
+      }
+      
       const firstContent = response.content[0];
       const responseText = firstContent && 'text' in firstContent ? firstContent.text : '';
+      
+      if (!responseText) {
+        throw new ClaudeAPIError('No content returned from Claude API');
+      }
+      
       const result = this.parseGoalAnalysisResponse(responseText);
       
       logger.info('Goal analyzed successfully', {
         goalId: goal.id,
-        intent: result.intent.type,
-        stepsCount: result.actionPlan.length
+        intent: result.intent?.type || 'unknown',
+        stepsCount: result.actionPlan?.length || 0
       });
       
       return result;
     } catch (error) {
       logger.error('Failed to analyze goal', error);
-      throw new ClaudeAPIError(`Goal analysis failed: ${error.message}`);
+      if (error instanceof ClaudeAPIError) {
+        throw error;
+      }
+      throw new ClaudeAPIError(`Goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
