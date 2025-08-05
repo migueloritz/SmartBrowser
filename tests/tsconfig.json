@@ -9,7 +9,18 @@
     "noImplicitAny": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["jest", "node"]
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "useUnknownInCatchVariables": false,
+    "types": ["jest", "node", "@types/jest"]
   },
   "include": [
     "../src/**/*",

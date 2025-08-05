@@ -322,5 +322,6 @@ class ContentSummarizer {
   }
 }
 
+export { ContentSummarizer };
 export const contentSummarizer = new ContentSummarizer();
 export default contentSummarizer;

@@ -11,7 +11,7 @@ import logger from '@/core/utils/logger';
 export interface ExecutionContext {
   userId: string;
   sessionId: string;
-  goal: UserGoal;
+  goal?: UserGoal;
   currentUrl?: string;
   browserContext?: any;
 }

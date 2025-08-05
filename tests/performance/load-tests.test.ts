@@ -1,7 +1,6 @@
-import { jest } from '@jest/globals';
 import { TaskExecutor } from '../../src/core/tasks/task-executor';
 import { ClaudeClient } from '../../src/core/ai/claude-client';
-import { ArticleExtractor } from '../../src/core/content/extractors/article-extractor';
+import { articleExtractor } from '../../src/core/content/extractors/article-extractor';
 import { PlaywrightManager } from '../../src/core/browser/playwright-manager';
 import MockFactory from '../helpers/mock-factory';
 
@@ -139,14 +138,10 @@ describe('Performance Tests', () => {
     });
   });
 
-  describe('Content Extraction Performance', () => {
-    let articleExtractor: ArticleExtractor;
+  describe('Article Extraction Performance', () => {
+    // Use the shared articleExtractor instance
 
-    beforeEach(() => {
-      articleExtractor = new ArticleExtractor();
-    });
-
-    it('should extract content from large articles efficiently', async () => {
+    it('should handle high volume content extraction', async () => {
       // Generate large article content
       const largeContent = `
         <!DOCTYPE html>

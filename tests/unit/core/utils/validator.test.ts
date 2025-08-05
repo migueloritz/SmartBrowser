@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { validator } from '../../../../src/core/utils/validator';
 import { ValidationError, SecurityError } from '../../../../src/types';
 

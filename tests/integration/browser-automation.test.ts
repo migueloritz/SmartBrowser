@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
+import { playwrightManager } from '../../src/core/browser/playwright-manager';
 import { PlaywrightManager } from '../../src/core/browser/playwright-manager';
-import { ArticleExtractor } from '../../src/core/content/extractors/article-extractor';
+import { articleExtractor } from '../../src/core/content/extractors/article-extractor';
 import { ClaudeClient } from '../../src/core/ai/claude-client';
 import MockFactory from '../helpers/mock-factory';
 
@@ -44,13 +44,12 @@ jest.mock('../../src/core/utils/validator', () => ({
 
 describe('Browser Automation Integration', () => {
   let playwrightManager: PlaywrightManager;
-  let articleExtractor: ArticleExtractor;
+  // Use the shared articleExtractor instance
   let claudeClient: ClaudeClient;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     playwrightManager = new PlaywrightManager();
-    articleExtractor = new ArticleExtractor();
     claudeClient = new ClaudeClient();
     
     await playwrightManager.initialize();

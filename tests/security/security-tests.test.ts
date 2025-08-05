@@ -1,6 +1,5 @@
-import { jest } from '@jest/globals';
 import { ClaudeClient } from '../../src/core/ai/claude-client';
-import { ArticleExtractor } from '../../src/core/content/extractors/article-extractor';
+import { articleExtractor } from '../../src/core/content/extractors/article-extractor';
 import { TaskExecutor } from '../../src/core/tasks/task-executor';
 import { ClaudeAPIError, ValidationError, SecurityError } from '../../src/types';
 import MockFactory from '../helpers/mock-factory';
@@ -214,11 +213,7 @@ describe('Security Tests', () => {
     });
 
     describe('Content Extraction Security', () => {
-      let articleExtractor: ArticleExtractor;
-
-      beforeEach(() => {
-        articleExtractor = new ArticleExtractor();
-      });
+      // Use the shared articleExtractor instance
 
       it('should sanitize malicious HTML content', async () => {
         const maliciousHtml = `
@@ -577,7 +572,7 @@ describe('Security Tests', () => {
     it('should sanitize URLs in error messages', async () => {
       const sensitiveUrl = 'https://admin:password123@internal.com/secret?token=abc123';
       
-      const articleExtractor = new ArticleExtractor();
+      // Use the shared articleExtractor instance
       
       try {
         await articleExtractor.extract('', sensitiveUrl);
@@ -607,7 +602,7 @@ describe('Security Tests', () => {
         </html>
       `;
 
-      const articleExtractor = new ArticleExtractor();
+      // Use the shared articleExtractor instance
       const result = await articleExtractor.extract(personalDataHtml, 'https://example.com');
 
       expect(result.success).toBe(true);
@@ -636,7 +631,7 @@ describe('Security Tests', () => {
         </html>
       `;
 
-      const articleExtractor = new ArticleExtractor();
+      // Use the shared articleExtractor instance
       
       const startTime = Date.now();
       const result = await articleExtractor.extract(circularHtml, 'https://example.com');
@@ -701,7 +696,7 @@ describe('Security Tests', () => {
         
         // Should timeout before 10 seconds
         expect(executionTime).toBeLessThan(8000);
-        expect(error.message).toContain('timeout') || expect(error.message).toContain('aborted');
+        expect(error.message.includes('timeout') || error.message.includes('aborted')).toBe(true);
       }
     });
   });

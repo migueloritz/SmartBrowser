@@ -544,5 +544,6 @@ Please provide a brief summary of what was accomplished and any next steps.`;
   }
 }
 
+export { TaskExecutor };
 export const taskExecutor = new TaskExecutor();
 export default taskExecutor;

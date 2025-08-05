@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { ClaudeClient } from '../../../../src/core/ai/claude-client';
 import { ClaudeAPIError } from '../../../../src/types';
 import MockFactory from '../../../helpers/mock-factory';
@@ -374,10 +373,10 @@ describe('ClaudeClient', () => {
 
       const schema = {
         fields: [
-          { name: 'title', type: 'string', description: 'Product title', required: true },
-          { name: 'price', type: 'number', description: 'Product price' },
-          { name: 'description', type: 'string', description: 'Product description' },
-          { name: 'availability', type: 'string', description: 'Product availability' }
+          { name: 'title', type: 'string' as const, description: 'Product title', required: true },
+          { name: 'price', type: 'number' as const, description: 'Product price' },
+          { name: 'description', type: 'string' as const, description: 'Product description' },
+          { name: 'availability', type: 'string' as const, description: 'Product availability' }
         ]
       };
 
@@ -410,7 +409,7 @@ describe('ClaudeClient', () => {
 
       const schema = {
         fields: [
-          { name: 'title', type: 'string', description: 'Product title' }
+          { name: 'title', type: 'string' as const, description: 'Product title' }
         ]
       };
 
@@ -424,7 +423,7 @@ describe('ClaudeClient', () => {
 
       const schema = {
         fields: [
-          { name: 'title', type: 'string', description: 'Product title' }
+          { name: 'title', type: 'string' as const, description: 'Product title' }
         ]
       };
 

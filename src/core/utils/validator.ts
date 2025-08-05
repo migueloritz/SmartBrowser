@@ -126,7 +126,14 @@ class Validator {
       return '';
     }
 
-    return input
+    let sanitized = input;
+    
+    // Remove dangerous patterns
+    for (const pattern of this.dangerousPatterns) {
+      sanitized = sanitized.replace(pattern, '');
+    }
+
+    return sanitized
       .replace(/[<>]/g, '') // Remove angle brackets
       .replace(/javascript:/gi, '') // Remove javascript protocols
       .replace(/on\w+\s*=/gi, '') // Remove event handlers
@@ -183,8 +190,8 @@ class Validator {
   }
 
   public validatePagination(page?: number, limit?: number): { page: number; limit: number } {
-    const validatedPage = Math.max(1, page || 1);
-    const validatedLimit = Math.min(100, Math.max(1, limit || 10));
+    const validatedPage = Math.max(1, page ?? 1);
+    const validatedLimit = Math.min(100, Math.max(1, limit ?? 10));
     
     return {
       page: validatedPage,

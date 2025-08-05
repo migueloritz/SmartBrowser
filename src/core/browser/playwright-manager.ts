@@ -450,5 +450,6 @@ class PlaywrightManager {
   }
 }
 
+export { PlaywrightManager };
 export const playwrightManager = new PlaywrightManager();
 export default playwrightManager;

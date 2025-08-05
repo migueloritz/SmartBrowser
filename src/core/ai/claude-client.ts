@@ -451,5 +451,6 @@ Return only valid JSON with the extracted data. If a field cannot be found or de
   }
 }
 
+export { ClaudeClient };
 export const claudeClient = new ClaudeClient();
 export default claudeClient;

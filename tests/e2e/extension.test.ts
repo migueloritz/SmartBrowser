@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

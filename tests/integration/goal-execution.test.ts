@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { TaskExecutor } from '../../src/core/tasks/task-executor';
 import { ClaudeClient } from '../../src/core/ai/claude-client';
 import { PlaywrightManager } from '../../src/core/browser/playwright-manager';

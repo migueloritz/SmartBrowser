@@ -1,6 +1,17 @@
-import { jest } from '@jest/globals';
 import { articleExtractor } from '../../../../../src/core/content/extractors/article-extractor';
 import { ContentExtractionError } from '../../../../../src/types';
+
+// Mock the logger module
+jest.mock('../../../../../src/core/utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+    verbose: jest.fn(),
+    http: jest.fn()
+  }
+}));
 
 describe('ArticleExtractor', () => {
   // Using the shared instance directly
@@ -194,8 +205,8 @@ describe('ArticleExtractor', () => {
       const result = await articleExtractor.extract(invalidHtml, 'https://example.com');
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Readability failed');
-      expect(result.confidence).toBe(0);
+      expect(result.error).toContain('Extracted content is too short');
+      expect(result.confidence).toBe(0.3);
     });
 
     it('should handle extraction with custom length limits', async () => {

@@ -23,6 +23,15 @@ declare global {
     sleep: (ms: number) => Promise<void>;
     waitForCondition: (condition: () => boolean, timeout?: number) => Promise<void>;
   };
+
+  namespace jest {
+    interface Matchers<R> {
+      toBeValidUrl(): R;
+      toBeValidDate(): R;
+      toHaveValidTaskStructure(): R;
+      toBeWithinTimeRange(start: number, end: number): R;
+    }
+  }
 }
 
 export {};

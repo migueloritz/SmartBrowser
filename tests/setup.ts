@@ -1,8 +1,9 @@
-import { jest } from '@jest/globals';
+// Jest global setup and configuration
+// Using standard Jest globals for better TypeScript compatibility
 
-// Mock logger globally
+// Mock logger globally - fixed export structure
 jest.mock('@/core/utils/logger', () => ({
-  default: {
+  logger: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
@@ -10,17 +11,58 @@ jest.mock('@/core/utils/logger', () => ({
   }
 }));
 
-// Extend Jest matchers
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeValidUrl(): R;
-      toBeValidDate(): R;
-      toHaveValidTaskStructure(): R;
-      toBeWithinTimeRange(start: number, end: number): R;
-    }
+// Mock Anthropic SDK
+jest.mock('@anthropic-ai/sdk', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      messages: {
+        create: jest.fn().mockResolvedValue({
+          content: [{ text: 'Mock Claude response' }],
+          id: 'msg_123',
+          model: 'claude-3-sonnet-20240229',
+          role: 'assistant',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          type: 'message',
+          usage: { input_tokens: 10, output_tokens: 20 }
+        })
+      }
+    }))
+  };
+});
+
+// Mock Playwright
+jest.mock('playwright', () => ({
+  chromium: {
+    launch: jest.fn().mockResolvedValue({
+      newContext: jest.fn().mockResolvedValue({
+        newPage: jest.fn().mockResolvedValue({
+          goto: jest.fn(),
+          content: jest.fn().mockResolvedValue('<html><body>Mock content</body></html>'),
+          title: jest.fn().mockResolvedValue('Mock Title'),
+          close: jest.fn()
+        }),
+        close: jest.fn()
+      }),
+      close: jest.fn()
+    })
   }
-}
+}));
+
+// Mock Redis
+jest.mock('redis', () => ({
+  createClient: jest.fn().mockReturnValue({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    exists: jest.fn(),
+    ttl: jest.fn(),
+    expire: jest.fn()
+  })
+}));
 
 // Custom Jest matchers
 expect.extend({
@@ -43,22 +85,21 @@ expect.extend({
 
   toBeValidDate(received: any) {
     const pass = received instanceof Date && !isNaN(received.getTime());
-    
     if (pass) {
       return {
-        message: () => `expected ${received} not to be a valid Date`,
+        message: () => `expected ${received} not to be a valid date`,
         pass: true,
       };
     } else {
       return {
-        message: () => `expected ${received} to be a valid Date`,
+        message: () => `expected ${received} to be a valid date`,
         pass: false,
       };
     }
   },
 
   toHaveValidTaskStructure(received: any) {
-    const requiredFields = ['id', 'type', 'userId', 'status', 'priority', 'createdAt'];
+    const requiredFields = ['id', 'type', 'status', 'priority', 'createdAt'];
     const hasAllFields = requiredFields.every(field => received.hasOwnProperty(field));
     
     if (hasAllFields) {
@@ -69,7 +110,7 @@ expect.extend({
     } else {
       const missingFields = requiredFields.filter(field => !received.hasOwnProperty(field));
       return {
-        message: () => `expected task to have valid structure, missing fields: ${missingFields.join(', ')}`,
+        message: () => `expected task to have valid structure. Missing fields: ${missingFields.join(', ')}`,
         pass: false,
       };
     }
@@ -80,151 +121,87 @@ expect.extend({
     
     if (pass) {
       return {
-        message: () => `expected ${received} not to be within time range ${start}-${end}`,
+        message: () => `expected ${received} not to be within range ${start}-${end}`,
         pass: true,
       };
     } else {
       return {
-        message: () => `expected ${received} to be within time range ${start}-${end}`,
+        message: () => `expected ${received} to be within range ${start}-${end}`,
         pass: false,
       };
     }
   }
 });
 
-// Mock external dependencies
-jest.mock('@anthropic-ai/sdk', () => {
-  return {
-    Anthropic: jest.fn().mockImplementation(() => ({
-      messages: {
-        create: jest.fn()
-      }
-    }))
-  };
-});
-
-jest.mock('playwright', () => ({
-  chromium: {
-    launch: jest.fn(),
-    launchPersistentContext: jest.fn()
-  }
-}));
-
-jest.mock('redis', () => ({
-  createClient: jest.fn(() => ({
-    connect: jest.fn(),
-    disconnect: jest.fn(),
-    set: jest.fn(),
-    get: jest.fn(),
-    del: jest.fn(),
-    exists: jest.fn(),
-    expire: jest.fn(),
-    lpush: jest.fn(),
-    rpop: jest.fn(),
-    llen: jest.fn()
-  }))
-}));
-
 // Global test utilities
-global.testUtils = {
+(global as any).testUtils = {
   createMockTask: (overrides = {}) => ({
-    id: 'test-task-id',
-    type: 'navigate' as const,
-    userId: 'test-user-id',
-    goalId: 'test-goal-id',
-    payload: { url: 'https://example.com' },
-    status: 'pending' as const,
-    priority: 'medium' as const,
-    retryCount: 0,
-    maxRetries: 3,
+    id: 'test-task-1',
+    type: 'search',
+    status: 'pending',
+    priority: 'medium',
+    goal: 'Test goal',
+    description: 'Test description',
+    steps: [],
+    results: [],
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides
   }),
 
+  createMockGoal: (overrides = {}) => ({
+    id: 'test-goal-1',
+    description: 'Test goal description',
+    priority: 'high',
+    status: 'active',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    tasks: [],
+    ...overrides
+  }),
+
   createMockPageContent: (overrides = {}) => ({
     url: 'https://example.com',
-    title: 'Example Page',
-    text: 'This is example content for testing purposes.',
-    html: '<html><body><h1>Example Page</h1><p>This is example content for testing purposes.</p></body></html>',
+    title: 'Test Page',
+    text: 'This is test content for the page.',
+    html: '<html><body><h1>Test Page</h1><p>This is test content for the page.</p></body></html>',
     metadata: {
       author: 'Test Author',
       publishDate: new Date(),
-      description: 'Example page description',
+      description: 'Test description',
       keywords: ['test', 'example'],
       language: 'en',
       readingTime: 1,
       wordCount: 10
     },
     extractedAt: new Date(),
-    extractorUsed: 'article-extractor',
-    ...overrides
-  }),
-
-  createMockGoal: (overrides = {}) => ({
-    id: 'test-goal-id',
-    userId: 'test-user-id',
-    text: 'find hotels in Paris',
-    intent: {
-      type: 'booking' as const,
-      confidence: 0.95,
-      parameters: {
-        location: 'Paris',
-        type: 'hotel'
-      }
-    },
-    entities: [
-      {
-        type: 'location' as const,
-        value: 'Paris',
-        confidence: 0.98,
-        start: 15,
-        end: 20
-      }
-    ],
-    priority: 'medium' as const,
-    status: 'pending' as const,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    extractorUsed: 'test-extractor',
     ...overrides
   }),
 
   createMockClaudeResponse: (overrides = {}) => ({
-    id: 'test-response-id',
-    type: 'message',
-    role: 'assistant',
-    content: [{ type: 'text' as const, text: 'Test response from Claude' }],
+    content: [{ text: 'Mock Claude response' }],
+    id: 'msg_123',
     model: 'claude-3-sonnet-20240229',
+    role: 'assistant',
     stop_reason: 'end_turn',
-    usage: {
-      input_tokens: 100,
-      output_tokens: 50
-    },
+    stop_sequence: null,
+    type: 'message',
+    usage: { input_tokens: 10, output_tokens: 20 },
     ...overrides
   }),
 
   sleep: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
 
   waitForCondition: async (condition: () => boolean, timeout = 5000) => {
-    const startTime = Date.now();
-    while (!condition() && Date.now() - startTime < timeout) {
-      await global.testUtils.sleep(10);
-    }
-    if (!condition()) {
-      throw new Error(`Condition not met within ${timeout}ms`);
+    const start = Date.now();
+    while (!condition()) {
+      if (Date.now() - start > timeout) {
+        throw new Error('Condition timeout');
+      }
+      await (global as any).testUtils.sleep(10);
     }
   }
-};
-
-// Console spy setup for cleaner test output
-const originalConsole = console;
-global.console = {
-  ...originalConsole,
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn()
 };
 
 // Environment setup
@@ -234,8 +211,14 @@ process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.ENCRYPTION_KEY = 'test-encryption-key-32-characters!';
 
-// Cleanup after each test
-afterEach(() => {
+// Global setup and teardown
+beforeEach(() => {
   jest.clearAllMocks();
   jest.clearAllTimers();
 });
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+export {};

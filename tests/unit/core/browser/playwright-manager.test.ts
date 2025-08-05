@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { PlaywrightManager } from '../../../../src/core/browser/playwright-manager';
 import { playwrightManager } from '../../../../src/core/browser/playwright-manager';
 import { BrowserError } from '../../../../src/types';
 import MockFactory from '../../../helpers/mock-factory';

@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { 
   Task, 
   PageContent, 
@@ -9,222 +8,301 @@ import {
   BrowserContext
 } from '../../src/types/index';
 
+/**
+ * Simple mock function implementation that works around Jest typing issues
+ */
+interface MockFunction {
+  (...args: any[]): any;
+  mockReturnValue: (value: any) => MockFunction;
+  mockResolvedValue: (value: any) => MockFunction;
+  mockRejectedValue: (error: any) => MockFunction;
+  mockReturnThis: () => MockFunction;
+  mockImplementation: (fn: (...args: any[]) => any) => MockFunction;
+  mockResolvedValueOnce: (value: any) => MockFunction;
+  mockReturnValueOnce: (value: any) => MockFunction;
+  calls: any[][];
+}
+
+function createMockFn(defaultReturn?: any): MockFunction {
+  let implementation: ((...args: any[]) => any) | null = null;
+  let returnValue = defaultReturn;
+  let resolvedValue: any;
+  let rejectedError: any;
+  let shouldReturnThis = false;
+  let onceValues: any[] = [];
+  let onceIndex = 0;
+  
+  const mockFn = function(...args: any[]) {
+    mockFn.calls.push(args);
+    
+    // Handle once values first
+    if (onceIndex < onceValues.length) {
+      const onceValue = onceValues[onceIndex++];
+      if (onceValue && onceValue.isPromise) {
+        return Promise.resolve(onceValue.value);
+      }
+      return onceValue;
+    }
+    
+    if (implementation) {
+      return implementation(...args);
+    }
+    
+    if (rejectedError) {
+      return Promise.reject(rejectedError);
+    }
+    
+    if (resolvedValue !== undefined) {
+      return Promise.resolve(resolvedValue);
+    }
+    
+    if (shouldReturnThis) {
+      return mockFn;
+    }
+    
+    return returnValue;
+  } as MockFunction;
+  
+  mockFn.calls = [];
+  
+  mockFn.mockReturnValue = (value: any) => {
+    returnValue = value;
+    return mockFn;
+  };
+  
+  mockFn.mockResolvedValue = (value: any) => {
+    resolvedValue = value;
+    return mockFn;
+  };
+  
+  mockFn.mockRejectedValue = (error: any) => {
+    rejectedError = error;
+    return mockFn;
+  };
+  
+  mockFn.mockReturnThis = () => {
+    shouldReturnThis = true;
+    return mockFn;
+  };
+  
+  mockFn.mockImplementation = (fn: (...args: any[]) => any) => {
+    implementation = fn;
+    return mockFn;
+  };
+  
+  mockFn.mockResolvedValueOnce = (value: any) => {
+    onceValues.push({ value, isPromise: true });
+    return mockFn;
+  };
+  
+  mockFn.mockReturnValueOnce = (value: any) => {
+    onceValues.push(value);
+    return mockFn;
+  };
+  
+  return mockFn;
+}
+
+/**
+ * Factory for creating mock objects for testing
+ */
 export class MockFactory {
-  static createMockBrowserContext(overrides: Partial<BrowserContext> = {}): BrowserContext {
-    return {
-      id: 'test-context-id',
-      userId: 'test-user-id',
-      sessionId: 'test-session-id',
-      created: new Date(),
-      lastUsed: new Date(),
-      pageCount: 1,
-      memoryUsage: 50 * 1024 * 1024, // 50MB
-      ...overrides
+  
+  static createMockPageContent(overrides: Partial<PageContent> = {}): PageContent {
+    const defaultContent: PageContent = {
+      url: 'https://example.com/test',
+      title: 'Test Page Title',
+      text: 'This is test content for the page',
+      html: '<html><body>This is test content for the page</body></html>',
+      metadata: {
+        description: 'Test page description',
+        keywords: ['test', 'page'],
+        author: 'Test Author',
+        publishDate: new Date('2024-01-01'),
+        wordCount: 150
+      },
+      extractedAt: new Date(),
+      extractorUsed: 'test-extractor'
     };
+    return { ...defaultContent, ...overrides };
   }
 
   static createMockTask(overrides: Partial<Task> = {}): Task {
-    return {
-      id: 'test-task-' + Math.random().toString(36).substr(2, 9),
-      type: 'navigate',
+    const defaultTask: Task = {
+      id: 'test-task-123',
+      type: 'extract_content',
       userId: 'test-user-id',
       goalId: 'test-goal-id',
-      payload: { url: 'https://example.com' },
+      payload: { 
+        url: 'https://example.com',
+        options: { extractType: 'article' }
+      },
       status: 'pending',
       priority: 'medium',
       retryCount: 0,
       maxRetries: 3,
       createdAt: new Date(),
-      updatedAt: new Date(),
-      ...overrides
+      updatedAt: new Date()
     };
-  }
-
-  static createMockPageContent(overrides: Partial<PageContent> = {}): PageContent {
-    return {
-      url: 'https://example.com/article',
-      title: 'Test Article Title',
-      text: 'This is a test article with meaningful content for testing content extraction and summarization capabilities.',
-      html: '<html><head><title>Test Article Title</title></head><body><h1>Test Article Title</h1><p>This is a test article with meaningful content.</p></body></html>',
-      metadata: {
-        author: 'Test Author',
-        publishDate: new Date('2024-01-15'),
-        description: 'A test article for content extraction testing',
-        keywords: ['test', 'article', 'content'],
-        language: 'en',
-        readingTime: 2,
-        wordCount: 150
-      },
-      extractedAt: new Date(),
-      extractorUsed: 'article-extractor',
-      ...overrides
-    };
+    return { ...defaultTask, ...overrides };
   }
 
   static createMockUserGoal(overrides: Partial<UserGoal> = {}): UserGoal {
-    return {
-      id: 'test-goal-' + Math.random().toString(36).substr(2, 9),
+    const defaultGoal: UserGoal = {
+      id: 'test-goal-456',
       userId: 'test-user-id',
-      text: 'find hotels in Paris for next weekend',
+      text: 'Extract article content from news website',
       intent: {
-        type: 'booking',
-        confidence: 0.95,
-        parameters: {
-          location: 'Paris',
-          type: 'hotel',
-          dateRange: 'next weekend'
-        }
+        type: 'summarize',
+        confidence: 0.9,
+        parameters: { domain: 'news' }
       },
-      entities: [
-        {
-          type: 'location',
-          value: 'Paris',
-          confidence: 0.98,
-          start: 15,
-          end: 20
-        }
-      ],
+      entities: [],
       priority: 'medium',
       status: 'pending',
       createdAt: new Date(),
-      updatedAt: new Date(),
-      ...overrides
+      updatedAt: new Date()
     };
-  }
-
-  static createMockClaudeResponse(overrides: Partial<ClaudeResponse> = {}): ClaudeResponse {
-    return {
-      id: 'msg_test_' + Math.random().toString(36).substr(2, 9),
-      type: 'message',
-      role: 'assistant',
-      content: [{
-        type: 'text',
-        text: 'This is a test response from Claude for testing purposes.'
-      }],
-      model: 'claude-3-sonnet-20240229',
-      stop_reason: 'end_turn',
-      usage: {
-        input_tokens: 100,
-        output_tokens: 50
-      },
-      ...overrides
-    };
+    return { ...defaultGoal, ...overrides };
   }
 
   static createMockTaskResult(overrides: Partial<TaskResult> = {}): TaskResult {
-    return {
-      taskId: 'test-task-id',
+    const defaultResult: TaskResult = {
+      taskId: 'test-task-123',
       success: true,
-      data: { result: 'test data' },
+      data: 'extracted content',
       executionTime: 1500,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-      },
-      ...overrides
+      metadata: { extractorUsed: 'test-extractor' }
     };
+    return { ...defaultResult, ...overrides };
   }
 
   static createMockContentSummary(overrides: Partial<ContentSummary> = {}): ContentSummary {
-    return {
-      id: 'summary-' + Math.random().toString(36).substr(2, 9),
-      url: 'https://example.com/article',
+    const defaultSummary: ContentSummary = {
+      id: 'test-summary-id',
+      url: 'https://example.com/test',
       title: 'Test Article Summary',
-      summary: 'This is a concise summary of the test article content highlighting the main points and key information.',
-      keyPoints: [
-        'First key point from the article',
-        'Second important insight',
-        'Third relevant detail'
-      ],
-      entities: [
+      summary: 'This is a test summary of the article content.',
+      keyPoints: ['Point 1', 'Point 2', 'Point 3'],
+      entities: [{
+        type: 'person',
+        name: 'John Doe',
+        confidence: 0.9,
+        mentions: 2
+      }],
+      sentiment: 'neutral',
+      relevanceScore: 0.85,
+      createdAt: new Date()
+    };
+    return { ...defaultSummary, ...overrides };
+  }
+
+  static createMockClaudeResponse(overrides: Partial<ClaudeResponse> = {}): ClaudeResponse {
+    const defaultResponse: ClaudeResponse = {
+      id: 'test-claude-response',
+      type: 'message',
+      role: 'assistant',
+      content: [
         {
-          type: 'person',
-          name: 'Test Author',
-          confidence: 0.9,
-          mentions: 2
-        },
-        {
-          type: 'organization',
-          name: 'Test Company',
-          confidence: 0.85,
-          mentions: 1
+          type: 'text',
+          text: 'This is a test response from Claude'
         }
       ],
-      sentiment: 'neutral',
-      relevanceScore: 0.8,
-      createdAt: new Date(),
-      ...overrides
+      model: 'claude-3-sonnet-20240229',
+      stop_reason: 'end_turn',
+      stop_sequence: null,
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50
+      }
     };
+    return { ...defaultResponse, ...overrides };
   }
 
-  static createMockPlaywrightPage() {
+  static createMockBrowserContext(overrides: Partial<BrowserContext> = {}): BrowserContext {
+    const defaultContext: BrowserContext = {
+      id: 'test-context-123',
+      userId: 'test-user-id',
+      sessionId: 'test-session-id',
+      created: new Date(),
+      lastUsed: new Date(),
+      pageCount: 1,
+      memoryUsage: 1024
+    };
+    return { ...defaultContext, ...overrides };
+  }
+
+  static createMockPlaywrightPage(): any {
     return {
-      goto: jest.fn().mockResolvedValue(undefined),
-      content: jest.fn().mockResolvedValue('<html><body>Test content</body></html>'),
-      title: jest.fn().mockResolvedValue('Test Page Title'),
-      url: jest.fn().mockReturnValue('https://example.com'),
-      evaluate: jest.fn(),
-      waitForSelector: jest.fn().mockResolvedValue({}),
-      waitForLoadState: jest.fn().mockResolvedValue(undefined),
-      screenshot: jest.fn().mockResolvedValue(Buffer.from('fake-screenshot')),
-      close: jest.fn().mockResolvedValue(undefined),
-      on: jest.fn(),
-      off: jest.fn(),
-      click: jest.fn().mockResolvedValue(undefined),
-      fill: jest.fn().mockResolvedValue(undefined),
-      selectOption: jest.fn().mockResolvedValue([]),
-      waitForTimeout: jest.fn().mockResolvedValue(undefined),
-      locator: jest.fn().mockReturnValue({
-        click: jest.fn().mockResolvedValue(undefined),
-        fill: jest.fn().mockResolvedValue(undefined),
-        textContent: jest.fn().mockResolvedValue('Test text'),
-        isVisible: jest.fn().mockResolvedValue(true)
+      goto: createMockFn().mockResolvedValue(undefined),
+      content: createMockFn().mockResolvedValue('<html><body>Test content</body></html>'),
+      title: createMockFn().mockResolvedValue('Test Page Title'),
+      url: createMockFn().mockReturnValue('https://example.com'),
+      evaluate: createMockFn(),
+      waitForSelector: createMockFn().mockResolvedValue({}),
+      waitForLoadState: createMockFn().mockResolvedValue(undefined),
+      screenshot: createMockFn().mockResolvedValue(Buffer.from('fake-screenshot')),
+      close: createMockFn().mockResolvedValue(undefined),
+      on: createMockFn(),
+      off: createMockFn(),
+      click: createMockFn().mockResolvedValue(undefined),
+      fill: createMockFn().mockResolvedValue(undefined),
+      selectOption: createMockFn().mockResolvedValue([]),
+      waitForTimeout: createMockFn().mockResolvedValue(undefined),
+      locator: createMockFn().mockReturnValue({
+        click: createMockFn().mockResolvedValue(undefined),
+        fill: createMockFn().mockResolvedValue(undefined),
+        textContent: createMockFn().mockResolvedValue('Test text'),
+        isVisible: createMockFn().mockResolvedValue(true)
       }),
-      $: jest.fn().mockResolvedValue({
-        textContent: jest.fn().mockResolvedValue('Test element text'),
-        getAttribute: jest.fn().mockResolvedValue('test-attribute')
+      $: createMockFn().mockResolvedValue({
+        textContent: createMockFn().mockResolvedValue('Test element text'),
+        getAttribute: createMockFn().mockResolvedValue('test-attribute')
       }),
-      $$: jest.fn().mockResolvedValue([]),
-      setContent: jest.fn().mockResolvedValue(undefined),
-      setViewportSize: jest.fn().mockResolvedValue(undefined)
+      $$: createMockFn().mockResolvedValue([]),
+      setContent: createMockFn().mockResolvedValue(undefined),
+      setViewportSize: createMockFn().mockResolvedValue(undefined)
     };
   }
 
-  static createMockPlaywrightBrowser() {
+  static createMockPlaywrightBrowser(): any {
     return {
-      newContext: jest.fn().mockResolvedValue({
-        newPage: jest.fn().mockResolvedValue(MockFactory.createMockPlaywrightPage()),
-        close: jest.fn().mockResolvedValue(undefined),
-        pages: jest.fn().mockReturnValue([])
+      newContext: createMockFn().mockResolvedValue({
+        newPage: createMockFn().mockResolvedValue(MockFactory.createMockPlaywrightPage()),
+        close: createMockFn().mockResolvedValue(undefined),
+        pages: createMockFn().mockReturnValue([])
       }),
-      close: jest.fn().mockResolvedValue(undefined),
-      contexts: jest.fn().mockReturnValue([]),
-      isConnected: jest.fn().mockReturnValue(true)
+      close: createMockFn().mockResolvedValue(undefined),
+      contexts: createMockFn().mockReturnValue([]),
+      isConnected: createMockFn().mockReturnValue(true)
     };
   }
 
-  static createMockRedisClient() {
+  static createMockRedisClient(): any {
     return {
-      connect: jest.fn().mockResolvedValue(undefined),
-      disconnect: jest.fn().mockResolvedValue(undefined),
-      ping: jest.fn().mockResolvedValue('PONG'),
-      set: jest.fn().mockResolvedValue('OK'),
-      get: jest.fn().mockResolvedValue(null),
-      del: jest.fn().mockResolvedValue(1),
-      exists: jest.fn().mockResolvedValue(0),
-      expire: jest.fn().mockResolvedValue(1),
-      lpush: jest.fn().mockResolvedValue(1),
-      rpop: jest.fn().mockResolvedValue(null),
-      llen: jest.fn().mockResolvedValue(0),
-      flushall: jest.fn().mockResolvedValue('OK')
+      connect: createMockFn().mockResolvedValue(undefined),
+      disconnect: createMockFn().mockResolvedValue(undefined),
+      ping: createMockFn().mockResolvedValue('PONG'),
+      set: createMockFn().mockResolvedValue('OK'),
+      get: createMockFn().mockResolvedValue(null),
+      del: createMockFn().mockResolvedValue(1),
+      exists: createMockFn().mockResolvedValue(0),
+      expire: createMockFn().mockResolvedValue(1),
+      lpush: createMockFn().mockResolvedValue(1),
+      rpop: createMockFn().mockResolvedValue(null),
+      llen: createMockFn().mockResolvedValue(0),
+      flushall: createMockFn().mockResolvedValue('OK'),
+      healthCheck: createMockFn().mockResolvedValue(true)
     };
   }
 
-  static createMockClaudeClient() {
+  static createMockClaudeClient(): any {
     return {
       messages: {
-        create: jest.fn().mockResolvedValue(MockFactory.createMockClaudeResponse())
-      }
+        create: createMockFn().mockResolvedValue(MockFactory.createMockClaudeResponse())
+      },
+      analyzeGoal: createMockFn(),
+      generateResponse: createMockFn()
     };
   }
 
@@ -239,15 +317,15 @@ export class MockFactory {
     };
   }
 
-  static createMockExpressResponse() {
+  static createMockExpressResponse(): any {
     const res: any = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-      end: jest.fn().mockReturnThis(),
-      header: jest.fn().mockReturnThis(),
-      cookie: jest.fn().mockReturnThis(),
-      clearCookie: jest.fn().mockReturnThis()
+      status: createMockFn().mockReturnThis(),
+      json: createMockFn().mockReturnThis(),
+      send: createMockFn().mockReturnThis(),
+      end: createMockFn().mockReturnThis(),
+      header: createMockFn().mockReturnThis(),
+      cookie: createMockFn().mockReturnThis(),
+      clearCookie: createMockFn().mockReturnThis()
     };
     return res;
   }
@@ -266,6 +344,11 @@ export class MockFactory {
       code: 'VALIDATION_ERROR'
     }));
   }
+
+  // Helper to create jest-style mocks that work with our custom functions
+  static jest = {
+    fn: createMockFn
+  };
 }
 
 export default MockFactory;

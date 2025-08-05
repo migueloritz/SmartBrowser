@@ -1,9 +1,6 @@
-import { jest } from '@jest/globals';
-import { TaskExecutor } from '../../../../src/core/tasks/task-executor';
-import { SmartBrowserError } from '../../../../src/types';
 import MockFactory from '../../../helpers/mock-factory';
 
-// Mock dependencies
+// Mock dependencies - declare first
 const mockSearchExecutor = {
   getName: jest.fn().mockReturnValue('SearchExecutor'),
   canHandle: jest.fn().mockReturnValue(true),
@@ -18,6 +15,7 @@ const mockClaudeClient = {
   generateResponse: jest.fn()
 };
 
+// Apply mocks before importing
 jest.mock('../../../../src/core/tasks/executors/search-executor', () => ({
   searchExecutor: mockSearchExecutor
 }));
@@ -26,14 +24,22 @@ jest.mock('../../../../src/core/ai/claude-client', () => ({
   claudeClient: mockClaudeClient
 }));
 
-jest.mock('../../../../src/core/utils/logger', () => ({
-  default: {
+jest.mock('../../../../src/core/utils/logger', () => {
+  const mockLogger = {
     info: jest.fn(),
-    debug: jest.fn(),
+    error: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
-  }
-}));
+    debug: jest.fn()
+  };
+  return {
+    default: mockLogger,
+    __esModule: true
+  };
+});
+
+// Import after mocks
+import { TaskExecutor } from '../../../../src/core/tasks/task-executor';
+import { SmartBrowserError } from '../../../../src/types';
 
 describe('TaskExecutor', () => {
   let taskExecutor: TaskExecutor;

@@ -12,6 +12,7 @@ module.exports = {
       tsconfig: 'tests/tsconfig.json'
     }],
   },
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   collectCoverageFrom: [
     'src/**/*.{ts,js}',
     '!src/**/*.d.ts',
@@ -28,7 +29,6 @@ module.exports = {
       statements: 80
     }
   },
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000,
   maxWorkers: 4,
   clearMocks: true,

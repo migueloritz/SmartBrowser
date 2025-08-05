@@ -1,7 +1,7 @@
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 import { PageContent, PageMetadata, ContentExtractionError } from '@/types';
-import logger from '@/core/utils/logger';
+import { logger } from '@/core/utils/logger';
 
 export interface ExtractionOptions {
   includeImages?: boolean;
@@ -19,7 +19,7 @@ export interface ExtractionResult {
 }
 
 class ArticleExtractor {
-  private readonly name = 'ArticleExtractor';
+  private readonly name = 'article-extractor';
   private readonly minContentLength = 100;
   private readonly maxContentLength = 100000;
 
@@ -44,6 +44,9 @@ class ArticleExtractor {
       const dom = new JSDOM(html, { url });
       const document = dom.window.document;
 
+      // Extract JSON-LD data BEFORE Readability processing (which removes script tags)
+      const jsonLdData = this.extractJsonLd(document);
+
       // Use Readability for content extraction
       const reader = new Readability(document, {
         debug: false,
@@ -64,8 +67,8 @@ class ArticleExtractor {
         };
       }
 
-      // Extract metadata
-      const metadata = this.extractMetadata(document);
+      // Extract metadata (pass pre-extracted JSON-LD data)
+      const metadata = this.extractMetadata(document, jsonLdData);
 
       // Clean and process text content
       let textContent = article.textContent || '';
@@ -76,7 +79,18 @@ class ArticleExtractor {
       }
 
       // Check minimum length
-      if (textContent.length < (options.minTextLength || this.minContentLength)) {
+      const minLength = options.minTextLength || this.minContentLength;
+      if (textContent.length < minLength) {
+        // If content is extremely short (less than 50 characters), treat as Readability failure
+        if (textContent.length < 50) {
+          return {
+            success: false,
+            error: 'Readability failed to extract meaningful content',
+            confidence: 0,
+            extractorUsed: this.name
+          };
+        }
+        
         return {
           success: false,
           error: 'Extracted content is too short',
@@ -131,7 +145,13 @@ class ArticleExtractor {
       };
 
     } catch (error) {
-      logger.error('Article extraction failed', { url, error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (logger && typeof logger.error === 'function') {
+        logger.error('Article extraction failed', { url, error: errorMessage });
+      } else {
+        console.error('Article extraction failed:', { url, error: errorMessage });
+      }
       
       return {
         success: false,
@@ -181,7 +201,7 @@ class ArticleExtractor {
     }
   }
 
-  private extractMetadata(document: Document): PageMetadata {
+  private extractMetadata(document: Document, jsonLdData?: any): PageMetadata {
     const getMetaContent = (selector: string): string | undefined => {
       const element = document.querySelector(selector);
       return element?.getAttribute('content') || undefined;
@@ -192,8 +212,11 @@ class ArticleExtractor {
       return element?.textContent?.trim() || undefined;
     };
 
-    // Extract JSON-LD structured data
-    const jsonLdData = this.extractJsonLd(document);
+    // Extract JSON-LD structured data (passed as parameter now)
+    // If not provided, fall back to extracting from document
+    if (!jsonLdData) {
+      jsonLdData = this.extractJsonLd(document);
+    }
 
     return {
       author: jsonLdData?.author?.name || 

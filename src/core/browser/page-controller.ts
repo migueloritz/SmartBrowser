@@ -338,5 +338,6 @@ class PageController {
   }
 }
 
+export { PageController };
 export const pageController = new PageController();
 export default pageController;
