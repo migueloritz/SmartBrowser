@@ -24,6 +24,7 @@ class PlaywrightManager {
   private readonly maxContexts: number;
   private readonly defaultTimeout: number;
   private readonly headless: boolean;
+  private readonly sessionTimeout: number = 30 * 60 * 1000; // 30 minutes
 
   constructor() {
     this.maxContexts = config.get().browserMaxContexts;
@@ -358,28 +359,79 @@ class PlaywrightManager {
     try {
       logger.info('Starting browser cleanup');
 
-      // Close all pages
-      const closePagePromises = Array.from(this.pages.keys()).map(pageId => 
-        this.closePage(pageId)
-      );
+      // Close all pages with error handling for each
+      const closePagePromises = Array.from(this.pages.keys()).map(async (pageId) => {
+        try {
+          await this.closePage(pageId);
+        } catch (error) {
+          logger.warn('Failed to close page during cleanup', { pageId, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      });
       await Promise.all(closePagePromises);
 
-      // Close all contexts
-      const closeContextPromises = Array.from(this.contexts.keys()).map(contextId =>
-        this.closeContext(contextId)
-      );
+      // Close all contexts with error handling for each
+      const closeContextPromises = Array.from(this.contexts.keys()).map(async (contextId) => {
+        try {
+          await this.closeContext(contextId);
+        } catch (error) {
+          logger.warn('Failed to close context during cleanup', { contextId, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      });
       await Promise.all(closeContextPromises);
 
       // Close browser
       if (this.browser) {
-        await this.browser.close();
-        this.browser = null;
+        try {
+          await this.browser.close();
+          this.browser = null;
+        } catch (error) {
+          logger.warn('Failed to close browser during cleanup', { error: error instanceof Error ? error.message : 'Unknown error' });
+        }
       }
+
+      // Clear all tracking maps
+      this.pages.clear();
+      this.contexts.clear();
 
       logger.info('Browser cleanup completed');
     } catch (error) {
       logger.error('Error during browser cleanup', error);
+      throw error;
     }
+  }
+
+  /**
+   * Clean up expired contexts based on session timeout
+   */
+  public async cleanupExpiredContexts(): Promise<void> {
+    const now = Date.now();
+    const expiredContexts: string[] = [];
+
+    for (const [contextId, contextInfo] of this.contexts.entries()) {
+      if (now - contextInfo.lastUsed.getTime() > this.sessionTimeout) {
+        expiredContexts.push(contextId);
+      }
+    }
+
+    if (expiredContexts.length > 0) {
+      logger.info('Cleaning up expired contexts', { count: expiredContexts.length });
+      const cleanupPromises = expiredContexts.map(contextId => this.closeContext(contextId));
+      await Promise.allSettled(cleanupPromises);
+    }
+  }
+
+  /**
+   * Start periodic cleanup of expired contexts
+   * @param intervalMs - Cleanup interval in milliseconds (default: 5 minutes)
+   */
+  public startPeriodicCleanup(intervalMs: number = 5 * 60 * 1000): void {
+    setInterval(async () => {
+      try {
+        await this.cleanupExpiredContexts();
+      } catch (error) {
+        logger.error('Error during periodic cleanup', error);
+      }
+    }, intervalMs);
   }
 
   private async cleanupOldestContext(): Promise<void> {
@@ -441,11 +493,23 @@ class PlaywrightManager {
     contextsCount: number;
     pagesCount: number;
     browserActive: boolean;
+    memoryUsage?: NodeJS.MemoryUsage;
+    oldestContextAge?: number;
   } {
+    let oldestContextAge: number | undefined;
+    
+    if (this.contexts.size > 0) {
+      const now = Date.now();
+      const ages = Array.from(this.contexts.values()).map(ctx => now - ctx.created.getTime());
+      oldestContextAge = Math.max(...ages);
+    }
+
     return {
       contextsCount: this.contexts.size,
       pagesCount: this.pages.size,
-      browserActive: this.browser !== null && this.browser.isConnected()
+      browserActive: this.browser !== null && this.browser.isConnected(),
+      memoryUsage: process.memoryUsage(),
+      oldestContextAge
     };
   }
 }

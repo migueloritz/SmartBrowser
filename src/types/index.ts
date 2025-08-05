@@ -14,7 +14,7 @@ export interface UserGoal {
 export interface GoalIntent {
   type: 'search' | 'booking' | 'shopping' | 'social' | 'summarize' | 'navigate';
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean>;
 }
 
 export interface GoalEntity {
@@ -115,15 +115,15 @@ export interface TaskPayload {
   url?: string;
   query?: string;
   content?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface TaskResult {
   taskId: string;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   executionTime: number;
 }
 
@@ -191,7 +191,7 @@ export interface OAuthToken {
 }
 
 // API Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -199,7 +199,7 @@ export interface ApiResponse<T = any> {
   timestamp: Date | string;
 }
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
   pagination: {
     page: number;
     limit: number;

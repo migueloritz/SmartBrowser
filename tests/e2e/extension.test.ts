@@ -708,11 +708,9 @@ describe('Chrome Extension E2E Tests', () => {
       const rateLimitError = new Error('Rate limit exceeded');
       mockChrome.runtime.sendMessage.mockRejectedValue(rateLimitError);
 
-      try {
-        await mockChrome.runtime.sendMessage({ type: 'API_REQUEST' });
-      } catch (error) {
-        expect(error.message).toContain('Rate limit exceeded');
-      }
+      await expect(
+        mockChrome.runtime.sendMessage({ type: 'API_REQUEST' })
+      ).rejects.toThrow('Rate limit exceeded');
     });
   });
 

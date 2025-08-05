@@ -9,22 +9,51 @@ jest.mock('@anthropic-ai/sdk', () => ({
   default: jest.fn().mockImplementation(() => MockFactory.createMockClaudeClient())
 }));
 
-const mockValidator = {
-  validateClaudeResponse: jest.fn(),
-  validateUserInput: jest.fn(),
-  sanitizeUserInput: jest.fn()
-};
+jest.mock('../../src/core/ai/claude-client', () => ({
+  ClaudeClient: jest.fn().mockImplementation(() => ({
+    summarizeContent: jest.fn(),
+    analyzeGoal: jest.fn(),
+    generateResponse: jest.fn(),
+    extractStructuredData: jest.fn()
+  })),
+  claudeClient: {
+    summarizeContent: jest.fn(),
+    analyzeGoal: jest.fn(),
+    generateResponse: jest.fn(),
+    extractStructuredData: jest.fn()
+  }
+}));
 
 jest.mock('../../src/core/utils/validator', () => ({
-  default: mockValidator
+  default: {
+    validateClaudeResponse: jest.fn(),
+    validateUserInput: jest.fn(),
+    sanitizeUserInput: jest.fn()
+  }
 }));
+
+// Get access to the mocked validator
+const mockValidator = jest.requireMock('../../src/core/utils/validator').default;
 
 jest.mock('../../src/core/utils/config', () => ({
   default: {
     get: jest.fn().mockReturnValue({
       claudeApiKey: 'test-api-key',
-      claudeModel: 'claude-3-sonnet-20240229'
-    })
+      claudeModel: 'claude-3-sonnet-20240229',
+      port: 3000,
+      nodeEnv: 'test',
+      redisUrl: 'redis://localhost:6379',
+      jwtSecret: 'test-jwt-secret',
+      encryptionKey: 'test-encryption-key-12345678901234',
+      browserTimeout: 30000,
+      browserMaxContexts: 5,
+      browserHeadless: true,
+      logLevel: 'info',
+      logFile: './logs/test.log'
+    }),
+    isDevelopment: jest.fn().mockReturnValue(false),
+    isProduction: jest.fn().mockReturnValue(false),
+    isTest: jest.fn().mockReturnValue(true)
   }
 }));
 
@@ -37,18 +66,19 @@ jest.mock('../../src/core/utils/logger', () => ({
   }
 }));
 
-const mockSearchExecutor = {
-  getName: jest.fn().mockReturnValue('SearchExecutor'),
-  canHandle: jest.fn().mockReturnValue(true),
-  execute: jest.fn(),
-  executeBatch: jest.fn(),
-  healthCheck: jest.fn().mockResolvedValue(true),
-  getConfig: jest.fn().mockReturnValue({})
-};
-
 jest.mock('../../src/core/tasks/executors/search-executor', () => ({
-  searchExecutor: mockSearchExecutor
+  searchExecutor: {
+    getName: jest.fn().mockReturnValue('SearchExecutor'),
+    canHandle: jest.fn().mockReturnValue(true),
+    execute: jest.fn(),
+    executeBatch: jest.fn(),
+    healthCheck: jest.fn().mockResolvedValue(true),
+    getConfig: jest.fn().mockReturnValue({})
+  }
 }));
+
+// Get access to the mocked search executor
+const mockSearchExecutor = jest.requireMock('../../src/core/tasks/executors/search-executor').searchExecutor;
 
 describe('Security Tests', () => {
   beforeEach(() => {

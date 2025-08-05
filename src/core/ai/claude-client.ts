@@ -23,12 +23,20 @@ export interface GoalAnalysisOptions {
   maxSteps?: number;
 }
 
+/**
+ * Claude AI client for content analysis and natural language processing
+ * Provides methods for summarization, goal analysis, and structured data extraction
+ */
 class ClaudeClient {
   private client: Anthropic;
   private readonly model: string;
   private readonly maxTokens: number = 4000;
   private readonly temperature: number = 0.3;
 
+  /**
+   * Initialize Claude client with API configuration
+   * @throws {ClaudeAPIError} When API key is not configured
+   */
   constructor() {
     const apiKey = config.get().claudeApiKey;
     if (!apiKey) {
@@ -43,6 +51,13 @@ class ClaudeClient {
     logger.info('Claude client initialized', { model: this.model });
   }
 
+  /**
+   * Summarize web page content using Claude AI
+   * @param content - Page content to summarize
+   * @param options - Summarization options (length, format, focus)
+   * @returns Promise with summary, key points, entities, sentiment, and relevance score
+   * @throws {ClaudeAPIError} When content is invalid or API request fails
+   */
   public async summarizeContent(
     content: PageContent,
     options: SummarizationOptions = {}
@@ -54,26 +69,63 @@ class ClaudeClient {
     relevanceScore: number;
   }> {
     try {
+      // Input validation
+      if (!content) {
+        throw new ClaudeAPIError('Content is required');
+      }
+      
+      if (!content.text || typeof content.text !== 'string') {
+        throw new ClaudeAPIError('Content text is required and must be a string');
+      }
+      
+      if (content.text.trim().length === 0) {
+        throw new ClaudeAPIError('Content text cannot be empty');
+      }
+      
+      if (content.text.length > 100000) {
+        throw new ClaudeAPIError('Content text is too long (max 100,000 characters)');
+      }
+
       const prompt = this.buildSummarizationPrompt(content, options);
       const response = await this.makeRequest(prompt);
       
+      if (!response || !response.content || !Array.isArray(response.content)) {
+        throw new ClaudeAPIError('Invalid response format from Claude API');
+      }
+      
       const firstContent = response.content[0];
       const responseText = firstContent && 'text' in firstContent ? firstContent.text : '';
+      
+      if (!responseText) {
+        throw new ClaudeAPIError('No content returned from Claude API');
+      }
+      
       const result = this.parseSummarizationResponse(responseText);
       
       logger.info('Content summarized successfully', {
         url: content.url,
-        summaryLength: result.summary.length,
-        keyPointsCount: result.keyPoints.length
+        summaryLength: result.summary?.length || 0,
+        keyPointsCount: result.keyPoints?.length || 0
       });
       
       return result;
     } catch (error) {
       logger.error('Failed to summarize content', error);
-      throw new ClaudeAPIError(`Summarization failed: ${error.message}`);
+      if (error instanceof ClaudeAPIError) {
+        throw error;
+      }
+      throw new ClaudeAPIError(`Summarization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  /**
+   * Analyze user goal and generate action plan using Claude AI
+   * @param goal - User goal to analyze
+   * @param context - Optional context (current page, history, etc.)
+   * @param options - Analysis options (steps, recommendations, etc.)
+   * @returns Promise with intent, entities, action plan, and recommendations
+   * @throws {ClaudeAPIError} When goal is invalid or API request fails
+   */
   public async analyzeGoal(
     goal: UserGoal,
     context?: {
@@ -103,23 +155,48 @@ class ClaudeClient {
     recommendations: string[];
   }> {
     try {
+      // Input validation
+      if (!goal) {
+        throw new ClaudeAPIError('Goal is required');
+      }
+      
+      if (!goal.text || typeof goal.text !== 'string') {
+        throw new ClaudeAPIError('Goal text is required and must be a string');
+      }
+      
+      if (goal.text.trim().length === 0) {
+        throw new ClaudeAPIError('Goal text cannot be empty');
+      }
+
       const prompt = this.buildGoalAnalysisPrompt(goal, context, options);
       const response = await this.makeRequest(prompt);
       
+      if (!response || !response.content || !Array.isArray(response.content)) {
+        throw new ClaudeAPIError('Invalid response format from Claude API');
+      }
+      
       const firstContent = response.content[0];
       const responseText = firstContent && 'text' in firstContent ? firstContent.text : '';
+      
+      if (!responseText) {
+        throw new ClaudeAPIError('No content returned from Claude API');
+      }
+      
       const result = this.parseGoalAnalysisResponse(responseText);
       
       logger.info('Goal analyzed successfully', {
         goalId: goal.id,
-        intent: result.intent.type,
-        stepsCount: result.actionPlan.length
+        intent: result.intent?.type || 'unknown',
+        stepsCount: result.actionPlan?.length || 0
       });
       
       return result;
     } catch (error) {
       logger.error('Failed to analyze goal', error);
-      throw new ClaudeAPIError(`Goal analysis failed: ${error.message}`);
+      if (error instanceof ClaudeAPIError) {
+        throw error;
+      }
+      throw new ClaudeAPIError(`Goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

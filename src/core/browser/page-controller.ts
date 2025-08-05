@@ -15,16 +15,45 @@ export interface PageSession {
   metadata?: PageMetadata;
 }
 
+/**
+ * Manages browser page sessions for content extraction and automation
+ * Handles session lifecycle, cleanup, and content retrieval
+ */
 class PageController {
   private sessions: Map<string, PageSession> = new Map();
   private readonly sessionTimeout = 30 * 60 * 1000; // 30 minutes
 
+  /**
+   * Create a new page session and navigate to URL
+   * @param userId - User identifier for session tracking
+   * @param url - URL to navigate to
+   * @param options - Navigation options (timeout, waitUntil, retries)
+   * @returns Promise with session ID
+   * @throws {BrowserError} When inputs are invalid or navigation fails
+   */
   public async createPageSession(
     userId: string,
     url: string,
     options: NavigationOptions = {}
   ): Promise<string> {
     try {
+      // Input validation
+      if (!userId || typeof userId !== 'string') {
+        throw new BrowserError('User ID is required and must be a string');
+      }
+      
+      if (!url || typeof url !== 'string') {
+        throw new BrowserError('URL is required and must be a string');
+      }
+      
+      if (userId.trim().length === 0) {
+        throw new BrowserError('User ID cannot be empty');
+      }
+      
+      if (url.trim().length === 0) {
+        throw new BrowserError('URL cannot be empty');
+      }
+
       // Validate URL
       const validatedUrl = validator.validateUrl(url);
       
@@ -32,14 +61,26 @@ class PageController {
       const sessionId = uuidv4();
       const contextId = await playwrightManager.createContext(userId, sessionId);
       
+      if (!contextId) {
+        throw new BrowserError('Failed to create browser context');
+      }
+      
       // Create page
       const pageId = await playwrightManager.createPage(contextId);
+      
+      if (!pageId) {
+        throw new BrowserError('Failed to create page');
+      }
       
       // Navigate to URL
       await playwrightManager.navigateToUrl(pageId, validatedUrl, options);
       
       // Get page info
       const pageContent = await playwrightManager.getPageContent(pageId);
+      
+      if (!pageContent) {
+        throw new BrowserError('Failed to get page content');
+      }
       
       // Create session
       const session: PageSession = {
