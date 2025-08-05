@@ -15,10 +15,22 @@ export interface PageSession {
   metadata?: PageMetadata;
 }
 
+/**
+ * Manages browser page sessions for content extraction and automation
+ * Handles session lifecycle, cleanup, and content retrieval
+ */
 class PageController {
   private sessions: Map<string, PageSession> = new Map();
   private readonly sessionTimeout = 30 * 60 * 1000; // 30 minutes
 
+  /**
+   * Create a new page session and navigate to URL
+   * @param userId - User identifier for session tracking
+   * @param url - URL to navigate to
+   * @param options - Navigation options (timeout, waitUntil, retries)
+   * @returns Promise with session ID
+   * @throws {BrowserError} When inputs are invalid or navigation fails
+   */
   public async createPageSession(
     userId: string,
     url: string,

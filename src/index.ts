@@ -553,6 +553,9 @@ class SmartBrowserApp {
       // Initialize browser manager
       await playwrightManager.initialize();
       
+      // Start periodic cleanup for browser resources
+      playwrightManager.startPeriodicCleanup();
+      
       // Start page controller cleanup interval
       pageController.startCleanupInterval();
       

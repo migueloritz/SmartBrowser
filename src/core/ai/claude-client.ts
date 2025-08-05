@@ -23,12 +23,20 @@ export interface GoalAnalysisOptions {
   maxSteps?: number;
 }
 
+/**
+ * Claude AI client for content analysis and natural language processing
+ * Provides methods for summarization, goal analysis, and structured data extraction
+ */
 class ClaudeClient {
   private client: Anthropic;
   private readonly model: string;
   private readonly maxTokens: number = 4000;
   private readonly temperature: number = 0.3;
 
+  /**
+   * Initialize Claude client with API configuration
+   * @throws {ClaudeAPIError} When API key is not configured
+   */
   constructor() {
     const apiKey = config.get().claudeApiKey;
     if (!apiKey) {
@@ -43,6 +51,13 @@ class ClaudeClient {
     logger.info('Claude client initialized', { model: this.model });
   }
 
+  /**
+   * Summarize web page content using Claude AI
+   * @param content - Page content to summarize
+   * @param options - Summarization options (length, format, focus)
+   * @returns Promise with summary, key points, entities, sentiment, and relevance score
+   * @throws {ClaudeAPIError} When content is invalid or API request fails
+   */
   public async summarizeContent(
     content: PageContent,
     options: SummarizationOptions = {}
@@ -103,6 +118,14 @@ class ClaudeClient {
     }
   }
 
+  /**
+   * Analyze user goal and generate action plan using Claude AI
+   * @param goal - User goal to analyze
+   * @param context - Optional context (current page, history, etc.)
+   * @param options - Analysis options (steps, recommendations, etc.)
+   * @returns Promise with intent, entities, action plan, and recommendations
+   * @throws {ClaudeAPIError} When goal is invalid or API request fails
+   */
   public async analyzeGoal(
     goal: UserGoal,
     context?: {

@@ -1,6 +1,10 @@
 import Joi from 'joi';
 import { ValidationError, SecurityError } from '@/types';
 
+/**
+ * Input validation and sanitization utility
+ * Provides comprehensive security and data validation for user inputs
+ */
 class Validator {
   private readonly maxInputLength = 10000;
   private readonly urlPattern = /^https?:\/\/[^\s$.?#].[^\s]*$/;

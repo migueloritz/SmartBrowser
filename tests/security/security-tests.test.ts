@@ -66,18 +66,19 @@ jest.mock('../../src/core/utils/logger', () => ({
   }
 }));
 
-const mockSearchExecutor = {
-  getName: jest.fn().mockReturnValue('SearchExecutor'),
-  canHandle: jest.fn().mockReturnValue(true),
-  execute: jest.fn(),
-  executeBatch: jest.fn(),
-  healthCheck: jest.fn().mockResolvedValue(true),
-  getConfig: jest.fn().mockReturnValue({})
-};
-
 jest.mock('../../src/core/tasks/executors/search-executor', () => ({
-  searchExecutor: mockSearchExecutor
+  searchExecutor: {
+    getName: jest.fn().mockReturnValue('SearchExecutor'),
+    canHandle: jest.fn().mockReturnValue(true),
+    execute: jest.fn(),
+    executeBatch: jest.fn(),
+    healthCheck: jest.fn().mockResolvedValue(true),
+    getConfig: jest.fn().mockReturnValue({})
+  }
 }));
+
+// Get access to the mocked search executor
+const mockSearchExecutor = jest.requireMock('../../src/core/tasks/executors/search-executor').searchExecutor;
 
 describe('Security Tests', () => {
   beforeEach(() => {

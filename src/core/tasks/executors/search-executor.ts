@@ -52,9 +52,18 @@ class SearchExecutor extends BaseExecutor {
     }
 
     const query = validator.sanitizeString(payload.query);
-    const searchEngine = payload.options?.searchEngine || 'google';
-    const maxResults = Math.min(payload.options?.maxResults || 10, 20);
-    const summarizeResults = payload.options?.summarizeResults || false;
+    const searchEngine = typeof payload.options?.searchEngine === 'string' 
+      ? payload.options.searchEngine 
+      : 'google';
+    const maxResults = Math.min(
+      typeof payload.options?.maxResults === 'number' 
+        ? payload.options.maxResults 
+        : 10, 
+      20
+    );
+    const summarizeResults = typeof payload.options?.summarizeResults === 'boolean' 
+      ? payload.options.summarizeResults 
+      : false;
 
     logger.info('Executing search task', {
       taskId: task.id,
